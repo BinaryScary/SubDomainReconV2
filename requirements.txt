@@ -1,0 +1,5 @@
+argparse
+dnspython==1.16.0
+futures==3.3.0
+wget==3.2
+
