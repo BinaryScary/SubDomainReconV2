@@ -1,7 +1,7 @@
 # SubDomainReconV2
 
 SubDomainRecon Python Implementation\
-massdns(passive amass + all.txt + commonspeak) -> massdns(altdns) -> subjack(results) + httprobe(results)\
+***massdns(passive amass + all.txt + commonspeak) -> massdns(altdns) -> subjack(results) + httprobe(results)***\
 Utalizes Bass to gather resolvers, verifies wildcard results in both subdomains and bad resolvers.\
 \
 *requires google-bigquery account*
