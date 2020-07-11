@@ -36,7 +36,7 @@ def runBass(domain):
 # get a list of public resolvers (less false positives)
 def getPubResolvers():
     cmd = ['wget','https://raw.githubusercontent.com/janmasarik/resolvers/master/resolvers.txt','-O','%s/wordlists/resolvers.txt' % scriptLoc]
-    results = subprocess.run(cmd)
+    subprocess.run(cmd)
 
 # initial amass passive recon
 def runAmass(domain):
@@ -50,8 +50,8 @@ def runAmass(domain):
     return results.stdout
 
 # Brute force subdomains using subbrute with all.txt
-def runAll(domain):
-    cmd = ['%s/massdns/scripts/subbrute.py'%scriptLoc,'%s/wordlists/all.txt'%scriptLoc,domain]
+def runAll(domain, wordlist = '%s/wordlists/all.txt'%scriptLoc):
+    cmd = ['%s/massdns/scripts/subbrute.py'%scriptLoc,wordlist,domain]
     results = subprocess.run(cmd,stdout=subprocess.PIPE)
 
     cmd = ['%s/massdns/bin/massdns'%scriptLoc,'-r','%s/wordlists/resolvers.txt'%scriptLoc,'-t','A','-o','S'] 
@@ -216,6 +216,9 @@ if __name__ == "__main__":
     http = False
     takeover = False
     confirm = False
+    amass = False
+    commonSpeak = False
+    
     # output
     mDomains = []
     httpServers = b''
@@ -226,10 +229,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Subdomain Recon Suite')
     parser.add_argument('domain',metavar='DomainName',type=str)
     parser.add_argument('-o', help='Print to output file', metavar='OutFile',type=str)
-    parser.add_argument('-v', help='Enable Verbosity', action='store_true')
+    parser.add_argument('-w', help='Initial Wordlist to use (Default all.txt)', metavar='Wordlist', type=str)
+    parser.add_argument('-a', help='Run Amass passive scan', action='store_true')
+    parser.add_argument('-g', help='Include Google BigQuery CommonSpeak in wordlist', action='store_true')
     parser.add_argument('-s', help='Scan for http/s servers', action='store_true')
     parser.add_argument('-t', help='Scan for subdomain takeovers', action='store_true')
-    parser.add_argument('-c', help='confirm subdomains with reputable resolvers', action='store_true')
+    parser.add_argument('-c', help='Confirm subdomains with reputable resolvers (Slow)', action='store_true')
+    parser.add_argument('-v', help='Enable Verbosity', action='store_true')
     args = parser.parse_args()
 
     domain = args.domain
@@ -237,6 +243,14 @@ if __name__ == "__main__":
     http = args.s
     takeover = args.t
     confirm = args.c
+    amass = args.a
+    commonSpeak = args.g
+
+    # setup wordlist
+    if args.w != None and os.path.isfile(args.w):
+        wordlist = args.w
+    else:
+        wordlist = '%s/wordlists/all.txt'%scriptLoc
 
     # setup outputfile
     if args.o != None:
@@ -261,19 +275,27 @@ if __name__ == "__main__":
     # public resolvers produce less false positives
     getPubResolvers()
 
+    # filter wildcard resolvers
     logging.info("Filtering Bad Resolvers")
     resolvers = runNXFilter(domain)
 
-    logging.info("Amass initial recon")
-    mAmass = runAmass(domain)
+    # initial subdomain brute/fuzz
+    mAmass = mAll = mComm = b""
 
+    if amass:
+        # grab amass passive recon subdomains
+        logging.info("Amass initial recon")
+        mAmass = runAmass(domain)
+
+    # run all.txt through massdns
     logging.info("Brute forcing all.txt with massdns")
-    mAll = runAll(domain)
+    mAll = runAll(domain,wordlist)
 
-    logging.info("Brute forcing commonspeak with massdns")
-    if isCommOld():
-        updateComm()
-    mComm = runComm(domain)
+    if commonSpeak:
+        logging.info("Brute forcing commonspeak with massdns")
+        if isCommOld():
+            updateComm()
+        mComm = runComm(domain)
 
     # extract domains from massDNS and remove period at end
     mDomains = parseM(mAll + mAmass + mComm)
