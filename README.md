@@ -9,7 +9,7 @@ Also utilizes Bass to gather resolvers, while verifying wildcard results in both
 
 ```
 $ sudo python3 SubDomainRecon.py --help
-usage: SubDomainRecon.py [-h] [-o OutFile] [-w Wordlist] [-a] [-g] [-s] [-t] [-c] [-v]
+usage: SubDomainRecon.py [-h] [-o OutFile] [-w Wordlist] [-a] [-g] [-p] [-s] [-t] [-c] [-v]
                          DomainName
 
 Subdomain Recon Suite
@@ -20,10 +20,11 @@ positional arguments:
 optional arguments:
   -h, --help   show this help message and exit
   -o OutFile   Print to output file
-  -w Wordlist  Initial wordlist to use (Default all.txt)
+  -w Wordlist  Initial Wordlist to use (Default all.txt)
   -a           Run Amass passive scan
   -g           Include Google BigQuery CommonSpeak in wordlist
-  -s           Scan for http/s servers
+  -p           Probe for http/s servers
+  -s           Test for http request smuggling (Slow)
   -t           Scan for subdomain takeovers
   -c           Confirm subdomains with reputable resolvers (Slow)
   -v           Enable Verbosity
