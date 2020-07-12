@@ -209,6 +209,14 @@ def runSubjack(mDomains):
     os.remove(tFile)
     return results.stdout
 
+# runSmuggler takes bstring of urls seperated with newlines
+def runSmuggler(urls):
+    cmd = ['python3','%s/smuggler/smuggler.py'% scriptLoc,'--no-color'] 
+    results = subprocess.run(cmd, stdout=subprocess.PIPE, input=urls)
+    output = results.stdout.split(b'\n')
+    vulns = [ vuln for vuln in output if b'Potential' in vuln ]
+    return b'\n'.join(vulns)
+
 if __name__ == "__main__":
     # flags
     domain = None
@@ -218,6 +226,7 @@ if __name__ == "__main__":
     confirm = False
     amass = False
     commonSpeak = False
+    smuggling = False
     
     # output
     mDomains = []
@@ -232,7 +241,8 @@ if __name__ == "__main__":
     parser.add_argument('-w', help='Initial Wordlist to use (Default all.txt)', metavar='Wordlist', type=str)
     parser.add_argument('-a', help='Run Amass passive scan', action='store_true')
     parser.add_argument('-g', help='Include Google BigQuery CommonSpeak in wordlist', action='store_true')
-    parser.add_argument('-s', help='Scan for http/s servers', action='store_true')
+    parser.add_argument('-p', help='Probe for http/s servers', action='store_true')
+    parser.add_argument('-s', help='Test for http request smuggling (Slow)', action='store_true')
     parser.add_argument('-t', help='Scan for subdomain takeovers', action='store_true')
     parser.add_argument('-c', help='Confirm subdomains with reputable resolvers (Slow)', action='store_true')
     parser.add_argument('-v', help='Enable Verbosity', action='store_true')
@@ -240,11 +250,17 @@ if __name__ == "__main__":
 
     domain = args.domain
 
-    http = args.s
+    http = args.p
     takeover = args.t
     confirm = args.c
     amass = args.a
     commonSpeak = args.g
+    smuggling = args.s
+
+    # if smuggling is set and http is not
+    if not http and smuggling:
+        logging.error(" Smuggling(-s) requires Httprobe(-p) to be enabled")
+        quit()
 
     # setup wordlist
     if args.w != None and os.path.isfile(args.w):
@@ -323,7 +339,7 @@ if __name__ == "__main__":
             for item in mDomains:
                 f.write("%s\n" % item)
 
-    # -s flag
+    # -p flag
     if http:
         logging.info("Scanning for http/s servers")
         httpServers = runHttprobe(mDomains)
@@ -332,6 +348,16 @@ if __name__ == "__main__":
                 f.write(httpServers.decode())
         stdOutput+="[-] HTTP/S Servers:\n"
         stdOutput+=httpServers.decode()
+
+    # -s flag
+    if smuggling:
+        logging.info("Scanning for http request smuggling")
+        smuggled = runSmuggler(httpServers)
+        if(outputFile != None and smuggled != b''):
+            with open('%s.smuggled' % outputFile, 'w') as f:
+                f.write(smuggled.decode())
+        stdOutput+="[-] Smuggeling Vulnerable Servers:\n"
+        stdOutput+=smuggled.decode()
 
     # -t flag
     if takeover:

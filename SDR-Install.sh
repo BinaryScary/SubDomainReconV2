@@ -47,6 +47,9 @@ go get github.com/haccer/subjack
 # httprobe install
 go get -u github.com/tomnomnom/httprobe
 
+# smuggler install
+git clone https://github.com/defparam/smuggler.git
+
 # install wordlists, words.txt inside altdns directory
 mkdir wordlists
 cd wordlists
